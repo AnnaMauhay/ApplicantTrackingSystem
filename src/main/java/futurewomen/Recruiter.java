@@ -1,7 +1,6 @@
 package futurewomen;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class Recruiter {
@@ -10,6 +9,10 @@ public class Recruiter {
 
     public void assignJobPosition(JobPosition jobPosition) {
         jobPositionsManaged.add(jobPosition);
+    }
+
+    public Set<JobPosition> getJobPositionsManaged() {
+        return jobPositionsManaged;
     }
 
     public Recruiter(String name, Set<JobPosition> jobPositionsManaged) {
@@ -25,6 +28,7 @@ public class Recruiter {
     public boolean isSpecializedFor(JobPosition jobPosition) {
         return jobPositionsManaged.contains(jobPosition);
     }
+
 
     public String getName() {
         return name;

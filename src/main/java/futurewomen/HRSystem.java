@@ -1,9 +1,7 @@
 package futurewomen;
 
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class HRSystem {
     public static List<JobPosition> jobPositions = new ArrayList<>(Arrays.asList(
@@ -15,34 +13,40 @@ public class HRSystem {
     public static List<Recruiter> recruiters = new ArrayList<>();
     private int maxCapacity;
     private ArrayBlockingQueue<Applicant> applicants;
+    public boolean quotaReached = false;
+
 
     public HRSystem(int maxCapacity) {
         this.maxCapacity = maxCapacity;
         applicants = new ArrayBlockingQueue<>(maxCapacity);
     }
 
+
+
     public void addRecruiter(Recruiter recruiter) {
         recruiters.add(recruiter);
     }
 
     public synchronized void addApplicant(Applicant applicant) {
-        while (applicants.size()>=maxCapacity){
+        while (applicants.size() >= maxCapacity) {
             try {
                 wait();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
-        try {
-            if (applicants.offer(applicant, 1, TimeUnit.SECONDS)) System.out.println("Added applicant to queue. " + applicant);
-            else System.out.println("Queue is full.");
-            notifyAll();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        if (applicants.offer(applicant)) {
+            System.out.println("Added applicant to queue. " + applicant);
+        } else System.out.println("Queue is full.");
+        notifyAll();
+
     }
 
-    public synchronized void reviewApplicant(Recruiter recruiter) {
+    public boolean hasApplicants() {
+        return !applicants.isEmpty();
+    }
+
+    public synchronized boolean reviewApplicant(Recruiter recruiter) {
         while (applicants.isEmpty()) {
             try {
                 wait();
@@ -52,14 +56,15 @@ public class HRSystem {
         }
 
         if (recruiter.isSpecializedFor(applicants.element().getAppliedPosition())) {
-            try {
-                recruiter.reviewApplicant(Objects.requireNonNull(applicants.poll(1, TimeUnit.SECONDS)));
+            recruiter.reviewApplicant(Objects.requireNonNull(applicants.poll()));
+            notifyAll();
+            return true;
+        } else{
+            System.out.printf("%s is not specialized in position %s\n", recruiter.getName(), applicants.element().getAppliedPosition().getLabel());
+            notifyAll();
+            return false;
+        }
 
-            } catch (InterruptedException e) {
-                System.out.println(Thread.currentThread().getName() + " is interrupted." + e.getMessage());
-            }
-        } else
-            System.out.printf("Recruiter %s is not specialized in position %s\n", recruiter.getName(), applicants.element().getAppliedPosition().getLabel());
-        notifyAll();
+
     }
 }
